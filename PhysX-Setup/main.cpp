@@ -59,16 +59,15 @@ void createRandomConvex(PxU32 numVerts, const PxVec3* verts)
 	}
 
 	physx::PxShape* shape = gPhyscis->createShape(physx::PxConvexMeshGeometry(convex), *gMaterial);
-	physx::PxU32 size = 30;
 	const physx::PxTransform t(physx::PxVec3(0));
 
 	float halfExtent = 500.f;
 
 	physx::PxTransform localTm(physx::PxVec3(
 		physx::PxReal(0),
-		physx::PxReal(10.f)
-		, -10.f
-	) * halfExtent);
+		physx::PxReal(0.f)
+		, 0.f
+	));
 	physx::PxRigidDynamic* body = gPhyscis->createRigidDynamic(t.transform(localTm));
 	body->attachShape(*shape);
 	physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
@@ -80,34 +79,27 @@ void createRandomConvex(PxU32 numVerts, const PxVec3* verts)
 void createConvexMeshes()
 {
 	const PxU32 numVerts = 3;
-	PxVec3* vertices = new PxVec3[3];
-
-	// Prepare random verts
-	for (PxU32 i = 0; i < numVerts; i++)
-	{
-	}
+	PxVec3* vertices = new PxVec3[numVerts];
 
 	vertices[0] = PxVec3(0.f, 50.f, 0.f);
-	vertices[1] = PxVec3(50.f, -50.f, 0.f);
-	vertices[2] = PxVec3(-50.f, -50.f, 0.f);
+	vertices[1] = PxVec3(50.f, 0.f, 0.f);
+	vertices[2] = PxVec3(-50.f, 0.f, 0.f);
 
 	// Create convex mesh using the quickhull algorithm with different settings
-	printf("-----------------------------------------------\n");
-	printf("Create convex mesh using the quickhull algorithm: \n\n");
-
+	//PxConvexMeshCookingType 2인자 true일 때와, false 일 때와 차이 명확히 할 것
 	// The default convex mesh creation serializing to a stream, useful for offline cooking.
 	createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, false, 16>(numVerts, vertices);
 
-	// The default convex mesh creation without the additional gauss map data.
-	createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, false, 256>(numVerts, vertices);
+	//// The default convex mesh creation without the additional gauss map data.
+	//createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, false, 256>(numVerts, vertices);
 
-	// Convex mesh creation inserting the mesh directly into PhysX. 
-	// Useful for runtime cooking.
-	createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, true, 16>(numVerts, vertices);
+	//// Convex mesh creation inserting the mesh directly into PhysX. 
+	//// Useful for runtime cooking.
+	//createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, true, 16>(numVerts, vertices);
 
-	// Convex mesh creation inserting the mesh directly into PhysX, without gauss map data.
-	// Useful for runtime cooking.
-	createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, true, 256>(numVerts, vertices);
+	//// Convex mesh creation inserting the mesh directly into PhysX, without gauss map data.
+	//// Useful for runtime cooking.
+	//createRandomConvex<PxConvexMeshCookingType::eQUICKHULL, true, 256>(numVerts, vertices);
 
 	delete[] vertices;
 }
@@ -138,7 +130,7 @@ int main()
 	mToleranceSacle.speed = 981;
 	gPhyscis = PxCreatePhysics(PX_PHYSICS_VERSION, *mFoundation, mToleranceSacle, true, mPvd);
 	physx::PxSceneDesc sceneDesc(gPhyscis->getTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -20.f, 0.0f);
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.8f, 0.0f);
 	mDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
@@ -161,27 +153,9 @@ int main()
 	}
 
 	//정지 마찰계수, 운동 마찰계수, 보존되는 에너지량 ?
-	gMaterial = gPhyscis->createMaterial(0.5f, 0.5f, 0.5f);
+	gMaterial = gPhyscis->createMaterial(10.f, 10.f, 0.5f);
 	physx::PxRigidStatic* groundPlane = PxCreatePlane(*gPhyscis, physx::PxPlane(0, 1, 0, 1), *gMaterial);
 	gScene->addActor(*groundPlane);
-
-	float halfExtent = 500.f;
-
-	physx::PxShape* shape = gPhyscis->createShape(physx::PxBoxGeometry(halfExtent, halfExtent, 0.1f), *gMaterial);
-	physx::PxU32 size = 30;
-	const physx::PxTransform t(physx::PxVec3(0));
-
-	physx::PxTransform localTm(physx::PxVec3(
-		physx::PxReal(0),
-		physx::PxReal(10.f)
-		, -10.f
-	) * halfExtent);
-	physx::PxRigidDynamic* body = gPhyscis->createRigidDynamic(t.transform(localTm));
-	body->attachShape(*shape);
-	physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
-	gScene->addActor(*body);
-
-	shape->release();
 
 	createConvexMeshes();
 
