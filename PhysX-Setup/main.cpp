@@ -2,12 +2,71 @@
 #include <PxPhysicsAPI.h>
 
 #include <ctype.h>
+#include <assert.h>
 
 using namespace physx;
 physx::PxPhysics* gPhyscis = NULL;
 PxCooking* gCooking = NULL;
 physx::PxScene* gScene = NULL;
 physx::PxMaterial* gMaterial = NULL;
+
+void ABC()
+{
+	PxVec3 boxDim(500.f, 500.f, 500.f);
+	PxVec3 verts[3] = {
+		PxVec3(-boxDim.x, boxDim.y + 500, 0),
+		PxVec3(boxDim.x, boxDim.y + 500, 0),
+		PxVec3(boxDim.x,  -boxDim.y + 500, 0),
+	};
+
+	PxU32 indices[4] = // 메쉬에 폴리곤이 적다면 NxU16을 써도 된다.
+	{
+		0,1,2
+	};
+
+	PxTolerancesScale scale;
+	PxCookingParams params(scale);
+	// disable mesh cleaning - perform mesh validation on development configurations
+	params.meshPreprocessParams |= PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+	// disable edge precompute, edges are set for each triangle, slows contact generation
+	params.meshPreprocessParams |= PxMeshPreprocessingFlag::eDISABLE_ACTIVE_EDGES_PRECOMPUTE;
+	// lower hierarchy for internal mesh
+	//PxMeshCookingHint::eCOOKING_PERFORMANCE;
+
+	gCooking->setParams(params);
+
+	PxTriangleMeshDesc meshDesc;
+	meshDesc.points.count = 3;
+	meshDesc.points.stride = sizeof(PxVec3);
+	meshDesc.points.data = verts;
+
+	meshDesc.triangles.count = 1;
+	meshDesc.triangles.stride = 3 * sizeof(PxU32);
+	meshDesc.triangles.data = indices;
+
+#ifdef _DEBUG
+	// mesh should be validated before cooked without the mesh cleaning
+	bool res = gCooking->validateTriangleMesh(meshDesc);
+	PX_ASSERT(res);
+#endif
+
+	PxTriangleMesh* triangleMesh = gCooking->createTriangleMesh(meshDesc,
+		gPhyscis->getPhysicsInsertionCallback());
+
+	PxRigidDynamic* meshActor = gPhyscis->createRigidDynamic(PxTransform(1.0, 1.0f, 1.0f));
+	PxShape* meshShape;
+	if (meshActor)
+	{
+		meshActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+
+		PxTriangleMeshGeometry triGeom;
+		triGeom.triangleMesh = triangleMesh;
+		meshShape = PxRigidActorExt::createExclusiveShape(*meshActor, triGeom,
+			*gMaterial);
+		gScene->addActor(*meshActor);
+	}
+}
+
 float rand(float loVal, float hiVal)
 {
 	return loVal + (float(rand()) / float(RAND_MAX)) * (hiVal - loVal);
@@ -69,7 +128,6 @@ void createRandomConvex(PxU32 numVerts, const PxVec3* verts)
 		, 0.f
 	));
 	physx::PxRigidDynamic* body = gPhyscis->createRigidDynamic(t.transform(localTm));
-	body->attachShape(*shape);
 	physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
 	gScene->addActor(*body);
 
@@ -130,7 +188,7 @@ int main()
 	mToleranceSacle.speed = 981;
 	gPhyscis = PxCreatePhysics(PX_PHYSICS_VERSION, *mFoundation, mToleranceSacle, true, mPvd);
 	physx::PxSceneDesc sceneDesc(gPhyscis->getTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -9.8f, 0.0f);
+	sceneDesc.gravity = physx::PxVec3(0.0f, -98.0f, 0.0f);
 	mDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
@@ -153,11 +211,11 @@ int main()
 	}
 
 	//정지 마찰계수, 운동 마찰계수, 보존되는 에너지량 ?
-	gMaterial = gPhyscis->createMaterial(10.f, 10.f, 0.5f);
+	gMaterial = gPhyscis->createMaterial(0.5f, 0.5f, 0.5f);
 	physx::PxRigidStatic* groundPlane = PxCreatePlane(*gPhyscis, physx::PxPlane(0, 1, 0, 1), *gMaterial);
 	gScene->addActor(*groundPlane);
-
-	createConvexMeshes();
+	ABC();
+	//ABC();
 
 
 	while (1)
