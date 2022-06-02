@@ -12,11 +12,11 @@ physx::PxMaterial* gMaterial = NULL;
 
 void ABC()
 {
-	PxVec3 boxDim(500.f, 500.f, 500.f);
+	PxVec3 boxDim(100.f, 100.f, 100.f);
 	PxVec3 verts[3] = {
-		PxVec3(-boxDim.x, boxDim.y + 500, 0),
-		PxVec3(boxDim.x, boxDim.y + 500, 0),
-		PxVec3(boxDim.x,  -boxDim.y + 500, 0),
+		PxVec3(-boxDim.x, boxDim.y, 0),
+		PxVec3(boxDim.x, boxDim.y, 0),
+		PxVec3(boxDim.x,  -boxDim.y, 0),
 	};
 
 	PxU32 indices[4] = // 메쉬에 폴리곤이 적다면 NxU16을 써도 된다.
@@ -53,12 +53,14 @@ void ABC()
 	PxTriangleMesh* triangleMesh = gCooking->createTriangleMesh(meshDesc,
 		gPhyscis->getPhysicsInsertionCallback());
 
-	PxRigidDynamic* meshActor = gPhyscis->createRigidDynamic(PxTransform(1.0, 1.0f, 1.0f));
+	PxRigidDynamic* meshActor = gPhyscis->createRigidDynamic(PxTransform(1.0, 500.0f, 1.0f));
 	PxShape* meshShape;
 	if (meshActor)
 	{
 		meshActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
+		meshActor->setMass(10.0f);
+	
 		PxTriangleMeshGeometry triGeom;
 		triGeom.triangleMesh = triangleMesh;
 		meshShape = PxRigidActorExt::createExclusiveShape(*meshActor, triGeom,
@@ -185,10 +187,10 @@ int main()
 	//For simulating roughly human - sized in metric units, 1 is a good choice.If simulation is done in centimetres, use 100 instead.This is used to estimate certain length - related tolerances.
 
 	mToleranceSacle.length = 100; //typical length of an object
-	mToleranceSacle.speed = 981;
+	mToleranceSacle.speed = 100;
 	gPhyscis = PxCreatePhysics(PX_PHYSICS_VERSION, *mFoundation, mToleranceSacle, true, mPvd);
 	physx::PxSceneDesc sceneDesc(gPhyscis->getTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -98.0f, 0.0f);
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.8f, 0.0f);
 	mDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
